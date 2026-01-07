@@ -8,7 +8,7 @@ from city_scrapers_core.constants import (
     CITY_COUNCIL,
     COMMISSION,
     NOT_CLASSIFIED,
-    PASSED
+    PASSED,
 )
 from city_scrapers_core.items import Meeting
 from city_scrapers_core.spiders import CityScrapersSpider
@@ -164,67 +164,26 @@ class ColgoStevensonCitySpiderMixin(
 
     def _parse_start(self, item):
         """Parse start datetime as a naive datetime object."""
-        # Try to find date and time from multiple possible locations
-        date_str = ""
-        time_str = ""
-
-        # Look for date
-        date_elem = item.css(
-            ".meeting-date::text, .views-field-field-date::text, "
-            ".date-display-single::text, time::attr(datetime)"
-        ).get()
+        # Extract ISO timestamp from content attribute (includes date and time)
+        date_elem = item.css("span[property='dc:date']::attr(content)").get()
 
         if date_elem:
-            date_str = date_elem.strip()
-
-        # Look for time
-        time_elem = item.css(".meeting-time::text, .views-field-field-time::text").get()
-
-        if time_elem:
-            time_str = time_elem.strip()
-
-        # Combine and parse
-        if date_str:
-            return self._parse_datetime(date_str, time_str)
+            return self._parse_datetime(date_elem.strip())
 
         return None
 
-    def _parse_datetime(self, date_str, time_str=""):
+    def _parse_datetime(self, date_str):
         """
-        Parse date and time strings into a datetime object.
-        Handles various formats.
+        Parse ISO datetime string into a naive datetime object.
+        Handles ISO 8601 format with timezone information.
         """
         try:
-            # Clean up the strings
             date_str = date_str.strip()
-            time_str = time_str.strip() if time_str else ""
 
-            # Try ISO format first (from datetime attribute)
+            # Parse ISO format (e.g., "2026-01-15T18:00:00-08:00")
             if "T" in date_str:
                 dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
                 return dt.replace(tzinfo=None)
-
-            # Combine date and time
-            datetime_str = f"{date_str} {time_str}".strip()
-
-            # Try various date formats
-            formats = [
-                "%m/%d/%Y - %I:%M%p",  # for "12/01/2025 - 5:30pm"
-                "%m/%d/%Y %I:%M%p",
-                "%m/%d/%Y %I:%M %p",
-                "%m/%d/%Y %H:%M",
-                "%B %d, %Y %I:%M%p",
-                "%B %d, %Y %I:%M %p",
-                "%Y-%m-%d %H:%M:%S",
-                "%m/%d/%Y",
-                "%B %d, %Y",
-            ]
-
-            for fmt in formats:
-                try:
-                    return datetime.strptime(datetime_str, fmt)
-                except ValueError:
-                    continue
 
             return None
 
