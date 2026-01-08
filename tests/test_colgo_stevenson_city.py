@@ -37,8 +37,6 @@ def test_title():
 
 def test_description():
     """Test meeting description"""
-    # assert parsed_items[0]["description"] == "" or isinstance(
-    #     parsed_items[0]["description"], str
     assert isinstance(parsed_items[0]["description"], str)
 
 

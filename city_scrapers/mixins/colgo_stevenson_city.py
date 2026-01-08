@@ -187,7 +187,7 @@ class ColgoStevensonCitySpiderMixin(
 
             return None
 
-        except Exception:
+        except ValueError:
             return None
 
     def _parse_links(self, item, response):
